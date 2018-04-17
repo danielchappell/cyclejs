@@ -1,9 +1,9 @@
-import xs, {Stream} from 'xstream';
-import {ScopeChecker} from './ScopeChecker';
-import {IsolateModule} from './IsolateModule';
-import {getFullScope, getSelectors} from './utils';
-import {matchesSelector} from './matchesSelector';
-import {PreventDefaultOpt, preventDefaultConditional} from './fromEvent';
+import xs, { Stream } from 'xstream';
+import { ScopeChecker } from './ScopeChecker';
+import { IsolateModule } from './IsolateModule';
+import { getFullScope, getSelectors } from './utils';
+import { matchesSelector } from './matchesSelector';
+import { PreventDefaultOpt, preventDefaultConditional } from './fromEvent';
 declare var requestIdleCallback: any;
 
 interface Destination {
@@ -44,6 +44,30 @@ function indexOf(arr: Array<Destination>, searchId: number): number {
 }
 
 /**
+ * HTMLSlotElement aware contains:
+ *  We (cycle/dom) don't want stop propagation on events belonging to a different (light) DOM just passing through.
+ *  The implementer however might want to stop propagation depending on application logic.
+ */
+function originatesInSlots(origin: Element, target: Element): boolean {
+  const slots = origin.querySelectorAll('slot');
+
+  let slotIndex = 0;
+  for (; slotIndex < slots.length; slotIndex++) {
+    const currentSlot = slots[slotIndex];
+    const lightNodes = currentSlot.assignedNodes && currentSlot.assignedNodes();
+
+    let nodeIndex = 0;
+    for (; nodeIndex < lightNodes.length; nodeIndex++) {
+      if (lightNodes[nodeIndex].contains(target)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Manages "Event delegation", by connecting an origin with multiple
  * destinations.
  *
@@ -62,7 +86,7 @@ export class EventDelegator {
     public eventType: string,
     public useCapture: boolean,
     public isolateModule: IsolateModule,
-    public preventDefault: PreventDefaultOpt = false,
+    public preventDefault: PreventDefaultOpt = false
   ) {
     if (preventDefault) {
       if (useCapture) {
@@ -90,7 +114,7 @@ export class EventDelegator {
     this.origin.removeEventListener(
       this.eventType,
       this.listener,
-      this.useCapture,
+      this.useCapture
     );
     newOrigin.addEventListener(this.eventType, this.listener, this.useCapture);
     this.origin = newOrigin;
@@ -106,7 +130,7 @@ export class EventDelegator {
     const selector = getSelectors(namespace);
     const scopeChecker = new ScopeChecker(
       getFullScope(namespace),
-      this.isolateModule,
+      this.isolateModule
     );
     const subject = xs.create<Event>({
       start: () => {},
@@ -120,7 +144,7 @@ export class EventDelegator {
         }
       },
     });
-    const destination: Destination = {id, selector, scopeChecker, subject};
+    const destination: Destination = { id, selector, scopeChecker, subject };
     this.destinations.push(destination);
     return subject;
   }
@@ -155,7 +179,11 @@ export class EventDelegator {
       el && el !== roof;
       el = el.parentElement
     ) {
-      if (!origin.contains(el)) {
+      if (
+        !(
+          origin.contains(el) || originatesInSlots(origin, ev.target as Element)
+        )
+      ) {
         ev.stopPropagation();
       }
       if (ev.propagationHasBeenStopped) {
@@ -192,7 +220,7 @@ export class EventDelegator {
 
   private mutateEventCurrentTarget(
     event: CycleDOMEvent,
-    currentTargetElement: Element,
+    currentTargetElement: Element
   ) {
     try {
       Object.defineProperty(event, `currentTarget`, {
