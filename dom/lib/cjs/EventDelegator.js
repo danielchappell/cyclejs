@@ -35,15 +35,16 @@ function indexOf(arr, searchId) {
  *  We (cycle/dom) don't want stop propagation on events belonging to a different (light) DOM just passing through.
  *  The implementer however might want to stop propagation depending on application logic.
  */
-function originatesInSlots(origin, target) {
-    var slots = origin.querySelectorAll('slot');
+function originatesInSlots(origin, target, slots) {
+    slots = slots || origin.querySelectorAll('slot');
     var slotIndex = 0;
     for (; slotIndex < slots.length; slotIndex++) {
         var currentSlot = slots[slotIndex];
         var lightNodes = currentSlot.assignedNodes && currentSlot.assignedNodes();
         var nodeIndex = 0;
         for (; nodeIndex < lightNodes.length; nodeIndex++) {
-            if (lightNodes[nodeIndex].contains(target)) {
+            if (lightNodes[nodeIndex].contains(target) ||
+                originatesInSlots(lightNodes[nodeIndex], target, lightNodes[nodeIndex].localName === 'slot' ? [lightNodes[nodeIndex]] : undefined)) {
                 return true;
             }
         }

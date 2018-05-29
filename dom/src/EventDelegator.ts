@@ -48,8 +48,8 @@ function indexOf(arr: Array<Destination>, searchId: number): number {
  *  We (cycle/dom) don't want stop propagation on events belonging to a different (light) DOM just passing through.
  *  The implementer however might want to stop propagation depending on application logic.
  */
-function originatesInSlots(origin: Element, target: Element): boolean {
-  const slots = origin.querySelectorAll('slot');
+function originatesInSlots(origin: Element, target: Element, slots?: NodeListOf<HTMLSlotElement> | HTMLSlotElement[]): boolean {
+  slots = slots || origin.querySelectorAll('slot') as NodeListOf<HTMLSlotElement>;
 
   let slotIndex = 0;
   for (; slotIndex < slots.length; slotIndex++) {
@@ -58,7 +58,9 @@ function originatesInSlots(origin: Element, target: Element): boolean {
 
     let nodeIndex = 0;
     for (; nodeIndex < lightNodes.length; nodeIndex++) {
-      if (lightNodes[nodeIndex].contains(target)) {
+      if (lightNodes[nodeIndex].contains(target) ||
+        originatesInSlots(lightNodes[nodeIndex] as Element, target, lightNodes[nodeIndex].localName === 'slot' ? [lightNodes[nodeIndex] as HTMLSlotElement] : undefined)
+      ) {
         return true;
       }
     }
@@ -133,7 +135,7 @@ export class EventDelegator {
       this.isolateModule
     );
     const subject = xs.create<Event>({
-      start: () => {},
+      start: () => { },
       stop: () => {
         if ('requestIdleCallback' in window) {
           requestIdleCallback(() => {
