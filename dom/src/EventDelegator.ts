@@ -49,7 +49,7 @@ function indexOf(arr: Array<Destination>, searchId: number): number {
  *  The implementer however might want to stop propagation depending on application logic.
  */
 function originatesInSlots(origin: Element, target: Element, slots?: NodeListOf<HTMLSlotElement> | HTMLSlotElement[]): boolean {
-  slots = slots || origin.querySelectorAll('slot') as NodeListOf<HTMLSlotElement>;
+  slots = slots || origin.querySelectorAll && origin.querySelectorAll('slot') as NodeListOf<HTMLSlotElement> || [];
 
   let slotIndex = 0;
   for (; slotIndex < slots.length; slotIndex++) {
