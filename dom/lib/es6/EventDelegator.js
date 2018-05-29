@@ -34,7 +34,7 @@ function indexOf(arr, searchId) {
  *  The implementer however might want to stop propagation depending on application logic.
  */
 function originatesInSlots(origin, target, slots) {
-    slots = slots || origin.querySelectorAll('slot');
+    slots = slots || origin.querySelectorAll && origin.querySelectorAll('slot') || [];
     var slotIndex = 0;
     for (; slotIndex < slots.length; slotIndex++) {
         var currentSlot = slots[slotIndex];
